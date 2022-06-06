@@ -87,6 +87,12 @@ class _ChatScreenState extends State<ChatScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            Expanded(
+              child: SizedBox(
+                child: Builder(),
+                height: 200.0,
+              ),
+            ),
             Container(
               decoration: kMessageContainerDecoration,
               child: Row(
@@ -122,29 +128,42 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-StreamBuilder<QuerySnapshot>(
-        stream: _usersStream,
-        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.hasError) {
-            return const Text('Something went wrong');
-          }
+class Builder extends StatelessWidget {
+  final Stream<QuerySnapshot> _usersStream =
+      FirebaseFirestore.instance.collection('messages').snapshots();
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _usersStream,
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return const Text('Something went wrong');
+        }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Text("Loading");
-          }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+              child: CircularProgressIndicator(
+            backgroundColor: Colors.lightBlueAccent,
+          ));
+        }
 
-          return ListView(
-            children: snapshot.data!.docs
-                .map((DocumentSnapshot document) {
-                  Map<String, dynamic> data =
-                      document.data()! as Map<String, dynamic>;
-                  return ListTile(
-                    title: Text(data['sender']),
-                    subtitle: Text(data['text']),
-                  );
-                })
-                .toList()
-                .cast(),
-          );
-        },
-      ),
+        return ListView(
+          children: snapshot.data!.docs
+              .map((DocumentSnapshot document) {
+                Map<String, dynamic> data =
+                    document.data()! as Map<String, dynamic>;
+                return ListTile(
+                  title: Text(data['sender']),
+                  subtitle: Text(
+                    data['text'],
+                    style: TextStyle(fontSize: 20),
+                  ),
+                );
+              })
+              .toList()
+              .cast(),
+        );
+      },
+    );
+  }
+}
