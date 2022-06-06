@@ -5,12 +5,12 @@ class RoundedButton extends StatelessWidget {
       {Key? key,
       required this.color,
       required this.title,
-      required this.pushedLocation})
+      required this.onPressed})
       : super(key: key);
 
   final Color color;
   final String title;
-  final String pushedLocation;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -21,10 +21,7 @@ class RoundedButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(30.0),
         elevation: 5.0,
         child: MaterialButton(
-          onPressed: () {
-            //Go to registration screen.
-            Navigator.pushNamed(context, pushedLocation);
-          },
+          onPressed: onPressed,
           minWidth: 200.0,
           height: 42.0,
           child: Text(

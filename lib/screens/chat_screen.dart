@@ -1,5 +1,10 @@
+import 'dart:html';
+
+import 'package:chat_app/screens/components/roundedButtonW.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/constants.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatScreen extends StatefulWidget {
   static const id = "chat_screen";
@@ -9,16 +14,69 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
+  late User loggedInUser;
+  late String messageText;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getCurrentUser();
+  }
+
+  void getCurrentUser() async {
+    try {
+      final user = await _auth.currentUser;
+      if (user != null) {
+        loggedInUser = user;
+        print(loggedInUser.email);
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  // void getMessages() async {
+  //   final messages = await _firestore.collection('messages').get();
+  //   for (var messages in messages.docs) {
+  //     print(messages.data());
+  //   }
+  // }
+
+  // void messagesStream() async {
+  //   await for (var snapshot in _firestore.collection("messages").snapshots()) {
+  //     for (var messages in snapshot.docs) {
+  //       print(messages.data());
+  //     }
+  //   }
+  // }
+
+  final Stream<QuerySnapshot> _usersStream =
+      FirebaseFirestore.instance.collection('messages').snapshots();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: null,
+        leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pop(context);
+            }),
+        automaticallyImplyLeading: false,
         actions: <Widget>[
           IconButton(
               icon: Icon(Icons.close),
               onPressed: () {
-                //Implement logout functionality
+                _auth.signOut();
+                Navigator.pop(context);
+              }),
+          IconButton(
+              icon: Icon(Icons.open_in_browser),
+              onPressed: () {
+                // messagesStream();
               }),
         ],
         title: Text('⚡️Chat'),
@@ -37,14 +95,17 @@ class _ChatScreenState extends State<ChatScreen> {
                   Expanded(
                     child: TextField(
                       onChanged: (value) {
-                        //Do something with the user input.
+                        messageText = value;
                       },
                       decoration: kMessageTextFieldDecoration,
                     ),
                   ),
                   FlatButton(
                     onPressed: () {
-                      //Implement send functionality.
+                      _firestore.collection('messages').add({
+                        'text': messageText,
+                        'sender': loggedInUser.email,
+                      });
                     },
                     child: Text(
                       'Send',
@@ -60,3 +121,30 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
+
+StreamBuilder<QuerySnapshot>(
+        stream: _usersStream,
+        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+          if (snapshot.hasError) {
+            return const Text('Something went wrong');
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Text("Loading");
+          }
+
+          return ListView(
+            children: snapshot.data!.docs
+                .map((DocumentSnapshot document) {
+                  Map<String, dynamic> data =
+                      document.data()! as Map<String, dynamic>;
+                  return ListTile(
+                    title: Text(data['sender']),
+                    subtitle: Text(data['text']),
+                  );
+                })
+                .toList()
+                .cast(),
+          );
+        },
+      ),
