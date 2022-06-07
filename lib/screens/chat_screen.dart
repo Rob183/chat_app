@@ -148,15 +148,25 @@ class Builder extends StatelessWidget {
         }
 
         return ListView(
+          padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
           children: snapshot.data!.docs
               .map((DocumentSnapshot document) {
                 Map<String, dynamic> data =
                     document.data()! as Map<String, dynamic>;
-                return ListTile(
-                  title: Text(data['sender']),
-                  subtitle: Text(
-                    data['text'],
-                    style: TextStyle(fontSize: 20),
+                return Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Material(
+                    elevation: 5.0,
+                    child: ListTile(
+                      tileColor: Colors.lightBlueAccent,
+                      // shape: RoundedRectangleBorder(
+                      //     borderRadius: BorderRadius.circular(50.0)),
+                      title: Text(data['sender']),
+                      subtitle: Text(
+                        data['text'],
+                        style: TextStyle(fontSize: 20),
+                      ),
+                    ),
                   ),
                 );
               })
