@@ -164,7 +164,7 @@ class Builder extends StatelessWidget {
                       title: Text(data['sender']),
                       subtitle: Text(
                         data['text'],
-                        style: TextStyle(fontSize: 20),
+                        style: TextStyle(fontSize: 15, color: Colors.white),
                       ),
                     ),
                   ),
