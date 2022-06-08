@@ -6,6 +6,9 @@ import 'package:chat_app/constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+final _firestore = FirebaseFirestore.instance;
+late User loggedInUser;
+
 class ChatScreen extends StatefulWidget {
   static const id = "chat_screen";
 
@@ -14,14 +17,13 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final messageTextController = TextEditingController();
   final _auth = FirebaseAuth.instance;
-  final _firestore = FirebaseFirestore.instance;
-  late User loggedInUser;
+
   late String messageText;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     getCurrentUser();
   }
@@ -52,7 +54,6 @@ class _ChatScreenState extends State<ChatScreen> {
   //     }
   //   }
   // }
-
   final Stream<QuerySnapshot> _usersStream =
       FirebaseFirestore.instance.collection('messages').snapshots();
 
@@ -100,6 +101,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: <Widget>[
                   Expanded(
                     child: TextField(
+                      controller: messageTextController,
                       onChanged: (value) {
                         messageText = value;
                       },
@@ -111,7 +113,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       _firestore.collection('messages').add({
                         'text': messageText,
                         'sender': loggedInUser.email,
+                        'time': DateTime.now().toString(),
                       });
+                      messageTextController.clear();
+                      print(DateTime.now());
                     },
                     child: Text(
                       'Send',
@@ -129,8 +134,10 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 class Builder extends StatelessWidget {
-  final Stream<QuerySnapshot> _usersStream =
-      FirebaseFirestore.instance.collection('messages').snapshots();
+  final Stream<QuerySnapshot> _usersStream = FirebaseFirestore.instance
+      .collection('messages')
+      .orderBy("time")
+      .snapshots();
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
@@ -148,25 +155,53 @@ class Builder extends StatelessWidget {
         }
 
         return ListView(
+          reverse: true,
           padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
-          children: snapshot.data!.docs
+          children: snapshot.data!.docs.reversed
               .map((DocumentSnapshot document) {
+                final currentUser = loggedInUser.email;
                 Map<String, dynamic> data =
                     document.data()! as Map<String, dynamic>;
+                final bool isme;
+                if (data['sender'] == currentUser) {
+                  isme = false;
+                } else {
+                  isme = true;
+                }
                 return Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Material(
-                    elevation: 5.0,
-                    child: ListTile(
-                      tileColor: Colors.lightBlueAccent,
-                      // shape: RoundedRectangleBorder(
-                      //     borderRadius: BorderRadius.circular(50.0)),
-                      title: Text(data['sender']),
-                      subtitle: Text(
-                        data['text'],
-                        style: TextStyle(fontSize: 15, color: Colors.white),
+                  child: Column(
+                    crossAxisAlignment: isme
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(data['sender'],
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.black54)),
                       ),
-                    ),
+                      Material(
+                          borderRadius: isme
+                              ? BorderRadius.only(
+                                  topLeft: Radius.circular(30),
+                                  bottomLeft: Radius.circular(30),
+                                  bottomRight: Radius.circular(30))
+                              : BorderRadius.only(
+                                  topRight: Radius.circular(30),
+                                  bottomLeft: Radius.circular(30),
+                                  bottomRight: Radius.circular(30)),
+                          elevation: 5.0,
+                          color:
+                              isme ? Colors.blueAccent : Colors.lightBlueAccent,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              data['text'],
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          )),
+                    ],
                   ),
                 );
               })
